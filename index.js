@@ -15,8 +15,11 @@ function init() {
     scene.add(axesHelper);
     // make a light
     let pointLight = new THREE.PointLight(0xffffff)
-    pointLight.position.set(10, 10, 10)
+    let pointLight1 = new THREE.PointLight(0xffffff)
+    pointLight.position.set(30, 50, 0)
+    pointLight1.position.set(0, 50, 30)
     scene.add(pointLight)
+    scene.add(pointLight1)
     // make a camera
     camera = new THREE.PerspectiveCamera(
         45,
@@ -29,13 +32,8 @@ function init() {
     camera.lookAt(scene.position)
 
     controls = new THREE.OrbitControls(camera, render.domElement);
-
-    //controls.addEventListener( 'change', render ); // call this only in static scenes (i.e., if there is no animation loop)
-  
-    controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
-    controls.dampingFactor = 0.05;
-  
-    controls.screenSpacePanning = false;
+    controls.enableDamping = true
+    controls.dampingFactor = 1
 }
 
 
@@ -45,8 +43,11 @@ class MakeTheShape {
     constructor() {
         let topGeometry = new THREE.BoxGeometry(5, 5, 5)
         let bottomGeometry = new THREE.BoxGeometry(2, 10, 2)
+        let loader = new THREE.TextureLoader()
+        let skin = loader.load('./public/brick.jpg')
         let commonMaterial = new THREE.MeshStandardMaterial({
-            color: 0xffffff
+            // color: 0xffffff,
+            map: skin
         })
         this.top = new THREE.Mesh(topGeometry, commonMaterial)
         this.top.position.set(0, 0, 0)
@@ -63,7 +64,7 @@ class MakeTheShape {
 
 function makeAFloor() {
     let planeGeometry = new THREE.PlaneGeometry(100, 100)
-    let planeMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff })
+    let planeMaterial = new THREE.MeshLambertMaterial({ color: 0x272727 })
     let plane = new THREE.Mesh(planeGeometry, planeMaterial)
     plane.rotation.x = -0.5 * Math.PI
     plane.position.set(0, -2.5, 0)
