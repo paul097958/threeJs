@@ -1,4 +1,4 @@
-let scene, camera, renderer, controls, cube, world;
+let scene, camera, renderer, controls, cube, world, sphereBody, groundBody;
 function init() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(
@@ -37,23 +37,27 @@ function cannon() {
     // 碰撞偵測
     world.broadphase = new CANNON.NaiveBroadphase()
 
-    let sphereShape = new CANNON.Sphere(1)
-    let sphereCM = new CANNON.Material()
-    let sphereBody = new CANNON.Body({
+    let sphereShape = new CANNON.Sphere(5)
+    let sphereCM = new CANNON.Material({
+        color: 0x009100,
+        wireframe: true
+    })
+    sphereBody = new CANNON.Body({
         mass: 5,
         shape: sphereShape,
-        position: new CANNON.Vec3(0, 10, 0),
-        material: sphereCM
+        material: sphereCM,
+        position: new CANNON.Vec3(0, 10, 0)
     })
     world.add(sphereBody)
 
     // 建立地板剛體
     let groundShape = new CANNON.Plane()
     let groundCM = new CANNON.Material()
-    let groundBody = new CANNON.Body({
+    groundBody = new CANNON.Body({
         mass: 0,
         shape: groundShape,
-        material: groundCM
+        material: groundCM,
+        position: new CANNON.Vec3(0, 0, 0)
     })
     // setFromAxisAngle 旋轉 x 軸 -90 度
     groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
@@ -72,7 +76,7 @@ function floor() {
         color: 0xCF9E9E
     });
     let plane = new THREE.Mesh(geometry, material);
-    plane.position.set(0, 0, 0);
+    plane.position.copy(groundBody.position)
     plane.rotation.x = -Math.PI / 2;
     plane.receiveShadow = true;
     scene.add(plane);
@@ -82,11 +86,11 @@ function square() {
     let geometry = new THREE.BoxGeometry(5, 5, 5);
     let material = new THREE.MeshPhongMaterial({
         color: 0xFF95CA,
+        wireframe: true
     });
     cube = new THREE.Mesh(geometry, material);
     cube.position.set(0, 10, 0)
     cube.castShadow = true;
-    cube.receiveShadow = true;
     scene.add(cube);
 }
 
@@ -95,14 +99,21 @@ function squareAnimate() {
     cube.rotation.y += 0.01
     cube.rotation.z += 0.01
 }
+let timeStep = 1.0 / 60.0
 
 function animate() {
+    world.step(timeStep)
+    if (cube) {
+        cube.position.copy(sphereBody.position)
+        cube.quaternion.copy(sphereBody.quaternion)
+    }
     requestAnimationFrame(animate);
     squareAnimate();
     renderer.render(scene, camera);
 }
 
 init()
+cannon()
 square()
 floor()
 animate()
