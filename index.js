@@ -1,100 +1,114 @@
-let scene, camera, render, controls;
-
+let scene, camera, renderer, controls, cube, world;
 function init() {
-    //make a scene
     scene = new THREE.Scene();
-    // make a render
-    render = new THREE.WebGLRenderer()
-    render.setClearColor(0xEBE6E8, 1.0)
-    render.setSize(window.innerWidth, window.innerHeight)
-    render.shadowMap.enable = true
-    // put it on the page
-    document.body.appendChild(render.domElement);
-    // use the help ------------------------------------------
-    let axesHelper = new THREE.AxesHelper(5);
-    scene.add(axesHelper);
-    // make a light
-    let pointLight = new THREE.PointLight(0xffffff)
-    let pointLight1 = new THREE.PointLight(0xffffff)
-    pointLight.position.set(30, 50, 0)
-    pointLight1.position.set(0, 50, 30)
-    scene.add(pointLight)
-    scene.add(pointLight1)
-    // make a camera
     camera = new THREE.PerspectiveCamera(
-        45,
+        75,
         window.innerWidth / window.innerHeight,
         0.1,
         1000
     );
-
-    camera.position.set(10, 0, 10)
-    camera.lookAt(scene.position)
-
-    controls = new THREE.OrbitControls(camera, render.domElement);
-    controls.enableDamping = true
-    controls.dampingFactor = 1
+    camera.position.set(10, 10, 10);
+    camera.lookAt(scene.position);
+    scene.add(camera);
+    // make a light
+    let light = new THREE.PointLight(0xffffff, 2);
+    light.position.set(50, 100, 120);
+    // make a light helper
+    let helper = new THREE.PointLightHelper(light, 5);
+    scene.add(helper);
+    // make the shadow
+    light.castShadow = true;
+    scene.add(light);
+    // make the helper
+    let axesHelper = new THREE.AxesHelper(5);
+    scene.add(axesHelper);
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = 2;
+    document.body.appendChild(renderer.domElement);
+    // make the control
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
 }
 
+function cannon() {
+    world = new CANNON.World()
+    world.gravity.set(0, -9.8, 0)
+    // 碰撞偵測
+    world.broadphase = new CANNON.NaiveBroadphase()
+
+    let sphereShape = new CANNON.Sphere(1)
+    let sphereCM = new CANNON.Material()
+    let sphereBody = new CANNON.Body({
+        mass: 5,
+        shape: sphereShape,
+        position: new CANNON.Vec3(0, 10, 0),
+        material: sphereCM
+    })
+    world.add(sphereBody)
+
+    // 建立地板剛體
+    let groundShape = new CANNON.Plane()
+    let groundCM = new CANNON.Material()
+    let groundBody = new CANNON.Body({
+        mass: 0,
+        shape: groundShape,
+        material: groundCM
+    })
+    // setFromAxisAngle 旋轉 x 軸 -90 度
+    groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
+    world.add(groundBody)
+
+    let sphereGroundContact = new CANNON.ContactMaterial(groundCM, sphereCM, {
+        friction: 0.5,
+        restitution: 0.7
+    })
+    world.addContactMaterial(sphereGroundContact)
+}
+
+function floor() {
+    let geometry = new THREE.PlaneGeometry(100, 100, 100);
+    let material = new THREE.MeshLambertMaterial({
+        color: 0xCF9E9E
+    });
+    let plane = new THREE.Mesh(geometry, material);
+    plane.position.set(0, 0, 0);
+    plane.rotation.x = -Math.PI / 2;
+    plane.receiveShadow = true;
+    scene.add(plane);
+}
+
+function square() {
+    let geometry = new THREE.BoxGeometry(5, 5, 5);
+    let material = new THREE.MeshPhongMaterial({
+        color: 0xFF95CA,
+    });
+    cube = new THREE.Mesh(geometry, material);
+    cube.position.set(0, 10, 0)
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+    scene.add(cube);
+}
+
+function squareAnimate() {
+    cube.rotation.x += 0.01
+    cube.rotation.y += 0.01
+    cube.rotation.z += 0.01
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    squareAnimate();
+    renderer.render(scene, camera);
+}
 
 init()
+square()
+floor()
+animate()
 
-class MakeTheShape {
-    constructor() {
-        let topGeometry = new THREE.BoxGeometry(5, 5, 5)
-        let bottomGeometry = new THREE.BoxGeometry(2, 10, 2)
-        let loader = new THREE.TextureLoader()
-        let skin = loader.load('./public/brick.jpg')
-        let commonMaterial = new THREE.MeshStandardMaterial({
-            // color: 0xffffff,
-            map: skin
-        })
-        this.top = new THREE.Mesh(topGeometry, commonMaterial)
-        this.top.position.set(0, 0, 0)
-        this.bottom = new THREE.Mesh(bottomGeometry, commonMaterial)
-        this.bottom.position.set(0, 7.5, 0)
-        this.group = new THREE.Group()
-        this.group.add(this.top)
-        this.group.add(this.bottom)
-    }
-    anime() {
-        this.group.rotation.y += 0.01
-    }
+window.onresize = () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 }
-
-function makeAFloor() {
-    let planeGeometry = new THREE.PlaneGeometry(100, 100)
-    let planeMaterial = new THREE.MeshLambertMaterial({ color: 0x272727 })
-    let plane = new THREE.Mesh(planeGeometry, planeMaterial)
-    plane.rotation.x = -0.5 * Math.PI
-    plane.position.set(0, -2.5, 0)
-    scene.add(plane)
-}
-makeAFloor()
-
-
-window.addEventListener('resize', function () {
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-    render.setSize(window.innerWidth, window.innerHeight)
-})
-
-
-
-
-let make = new MakeTheShape()
-set()
-
-function set() {
-    make.anime()
-    scene.add(make.group)
-    requestAnimationFrame(set);
-    controls.update()
-    render.render(scene, camera)
-}
-
-
-
-
-
-
